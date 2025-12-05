@@ -15,7 +15,7 @@ export function DatePicker({ date, onDateChange }: DatePickerProps) {
   return (
     <div className="space-y-1.5">
       <Label className="text-xs text-muted-foreground">
-        Start Month
+        End Date
       </Label>
       <Popover>
         <PopoverTrigger asChild>
@@ -27,7 +27,7 @@ export function DatePicker({ date, onDateChange }: DatePickerProps) {
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {date ? format(date, "MMM yyyy") : "Select date"}
+            {date ? format(date, "dd MMM yyyy") : "Select date"}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">

@@ -5,7 +5,6 @@ import { AxisControls } from './AxisControls';
 import { ExportButton } from './ExportButton';
 import { DatePicker } from './DatePicker';
 import { Curve, AxisConfig, Point, CURVE_COLORS } from '@/types/curve';
-import { startOfMonth } from 'date-fns';
 
 function generateId() {
   return Math.random().toString(36).substring(2, 9);
@@ -13,11 +12,11 @@ function generateId() {
 
 export function CurveDataGenerator() {
   const [curves, setCurves] = useState<Curve[]>([
-    { id: generateId(), name: 'Curve 1', points: [], color: CURVE_COLORS[0] }
+    { id: generateId(), name: 'Curve 1', points: [], color: CURVE_COLORS[0], visible: true }
   ]);
   const [activeCurveId, setActiveCurveId] = useState<string | null>(curves[0].id);
   const [axisConfig, setAxisConfig] = useState<AxisConfig>({ yMin: 0, yMax: 100 });
-  const [startDate, setStartDate] = useState<Date>(startOfMonth(new Date()));
+  const [endDate, setEndDate] = useState<Date>(new Date());
 
   const handleAddCurve = useCallback(() => {
     const newCurve: Curve = {
@@ -25,8 +24,10 @@ export function CurveDataGenerator() {
       name: `Curve ${curves.length + 1}`,
       points: [],
       color: CURVE_COLORS[curves.length % CURVE_COLORS.length],
+      visible: true,
     };
-    setCurves(prev => [...prev, newCurve]);
+    // Set all other curves to not visible, only new curve visible
+    setCurves(prev => prev.map(c => ({ ...c, visible: false })).concat(newCurve));
     setActiveCurveId(newCurve.id);
   }, [curves.length]);
 
@@ -47,6 +48,10 @@ export function CurveDataGenerator() {
 
   const handleClearCurve = useCallback((id: string) => {
     setCurves(prev => prev.map(c => c.id === id ? { ...c, points: [] } : c));
+  }, []);
+
+  const handleToggleVisibility = useCallback((id: string) => {
+    setCurves(prev => prev.map(c => c.id === id ? { ...c, visible: !c.visible } : c));
   }, []);
 
   return (
@@ -70,6 +75,7 @@ export function CurveDataGenerator() {
                 activeCurveId={activeCurveId}
                 axisConfig={axisConfig}
                 onUpdateCurve={handleUpdateCurve}
+                onToggleVisibility={handleToggleVisibility}
               />
             </div>
             <p className="text-sm text-muted-foreground text-center">
@@ -100,15 +106,15 @@ export function CurveDataGenerator() {
 
             <div className="bg-card rounded-xl border border-border p-4">
               <DatePicker
-                date={startDate}
-                onDateChange={setStartDate}
+                date={endDate}
+                onDateChange={setEndDate}
               />
             </div>
 
             <ExportButton
               curves={curves}
               axisConfig={axisConfig}
-              startDate={startDate}
+              endDate={endDate}
             />
           </div>
         </div>
