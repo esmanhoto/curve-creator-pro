@@ -1,8 +1,7 @@
 import { Curve, CURVE_COLORS } from '@/types/curve';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Trash2, Pencil, Check } from 'lucide-react';
-import { useState } from 'react';
+import { Plus, Trash2, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CurveListProps {
@@ -24,21 +23,6 @@ export function CurveList({
   onRenameCurve,
   onClearCurve,
 }: CurveListProps) {
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState('');
-
-  const startEditing = (curve: Curve) => {
-    setEditingId(curve.id);
-    setEditingName(curve.name);
-  };
-
-  const saveEdit = () => {
-    if (editingId && editingName.trim()) {
-      onRenameCurve(editingId, editingName.trim());
-    }
-    setEditingId(null);
-  };
-
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -58,7 +42,7 @@ export function CurveList({
       </div>
 
       <div className="space-y-2">
-        {curves.map((curve, index) => (
+        {curves.map((curve) => (
           <div
             key={curve.id}
             className={cn(
@@ -74,50 +58,29 @@ export function CurveList({
               style={{ backgroundColor: curve.color }}
             />
             
-            {editingId === curve.id ? (
-              <div className="flex-1 flex items-center gap-1">
-                <Input
-                  value={editingName}
-                  onChange={(e) => setEditingName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && saveEdit()}
-                  className="h-6 text-sm bg-background"
-                  autoFocus
-                  onClick={(e) => e.stopPropagation()}
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    saveEdit();
-                  }}
-                >
-                  <Check className="h-3 w-3" />
-                </Button>
-              </div>
-            ) : (
-              <>
-                <span className="flex-1 text-sm font-medium truncate">
-                  {curve.name}
-                </span>
-                <span className="text-xs text-muted-foreground font-mono">
-                  {curve.points.length > 0 ? `${curve.points.length} pts` : 'empty'}
-                </span>
-              </>
-            )}
+            <Input
+              value={curve.name}
+              onChange={(e) => onRenameCurve(curve.id, e.target.value)}
+              className="h-6 text-sm bg-background flex-1"
+              onClick={(e) => e.stopPropagation()}
+            />
 
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <span className="text-xs text-muted-foreground font-mono whitespace-nowrap">
+              {curve.points.length > 0 ? `${curve.points.length} pts` : 'empty'}
+            </span>
+
+            <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 text-muted-foreground hover:text-foreground"
                 onClick={(e) => {
                   e.stopPropagation();
-                  startEditing(curve);
+                  onClearCurve(curve.id);
                 }}
+                title="Clear curve"
               >
-                <Pencil className="h-3 w-3" />
+                <RotateCcw className="h-3 w-3" />
               </Button>
               {curves.length > 1 && (
                 <Button
@@ -136,17 +99,6 @@ export function CurveList({
           </div>
         ))}
       </div>
-
-      {activeCurveId && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full text-muted-foreground"
-          onClick={() => onClearCurve(activeCurveId)}
-        >
-          Clear Selected Curve
-        </Button>
-      )}
     </div>
   );
 }

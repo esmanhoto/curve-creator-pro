@@ -1,12 +1,15 @@
 import { useEffect, useCallback } from 'react';
 import { useDrawingCanvas } from '@/hooks/useDrawingCanvas';
 import { Curve, AxisConfig, Point } from '@/types/curve';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 interface DrawingCanvasProps {
   curves: Curve[];
   activeCurveId: string | null;
   axisConfig: AxisConfig;
   onUpdateCurve: (id: string, points: Point[]) => void;
+  onToggleVisibility: (id: string) => void;
 }
 
 const CANVAS_WIDTH = 800;
@@ -17,7 +20,8 @@ export function DrawingCanvas({
   curves, 
   activeCurveId, 
   axisConfig, 
-  onUpdateCurve 
+  onUpdateCurve,
+  onToggleVisibility,
 }: DrawingCanvasProps) {
   const {
     canvasRef,
@@ -43,7 +47,7 @@ export function DrawingCanvas({
     } else {
       clearPoints();
     }
-  }, [activeCurveId, setPoints, clearPoints]);
+  }, [activeCurveId, activeCurve?.points, setPoints, clearPoints]);
 
   // Save points when drawing stops
   useEffect(() => {
@@ -125,9 +129,9 @@ export function DrawingCanvas({
       ctx.fillText(months[i], x, CANVAS_HEIGHT - PADDING.bottom + 25);
     }
 
-    // Draw all curves
+    // Draw only visible curves
     curves.forEach(curve => {
-      if (curve.points.length < 2) return;
+      if (!curve.visible || curve.points.length < 2) return;
       
       ctx.strokeStyle = curve.color;
       ctx.lineWidth = curve.id === activeCurveId ? 3 : 2;
@@ -148,8 +152,8 @@ export function DrawingCanvas({
       ctx.stroke();
     });
 
-    // Draw current drawing points (if active curve)
-    if (activeCurve && points.length > 0) {
+    // Draw current drawing points (if active curve is visible)
+    if (activeCurve && activeCurve.visible && points.length > 0) {
       ctx.strokeStyle = activeCurve.color;
       ctx.lineWidth = 3;
       ctx.lineCap = 'round';
@@ -184,15 +188,40 @@ export function DrawingCanvas({
   }, [drawCanvas]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={CANVAS_WIDTH}
-      height={CANVAS_HEIGHT}
-      className="w-full max-w-[800px] rounded-lg border border-border cursor-crosshair"
-      onMouseDown={activeCurveId ? startDrawing : undefined}
-      onMouseMove={activeCurveId ? draw : undefined}
-      onMouseUp={activeCurveId ? stopDrawing : undefined}
-      onMouseLeave={activeCurveId ? stopDrawing : undefined}
-    />
+    <div className="space-y-3">
+      {/* Curve visibility toggles */}
+      <div className="flex flex-wrap gap-4">
+        {curves.map(curve => (
+          <div key={curve.id} className="flex items-center gap-2">
+            <Checkbox
+              id={`visibility-${curve.id}`}
+              checked={curve.visible}
+              onCheckedChange={() => onToggleVisibility(curve.id)}
+            />
+            <Label 
+              htmlFor={`visibility-${curve.id}`}
+              className="text-sm cursor-pointer flex items-center gap-2"
+            >
+              <div
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: curve.color }}
+              />
+              {curve.name}
+            </Label>
+          </div>
+        ))}
+      </div>
+
+      <canvas
+        ref={canvasRef}
+        width={CANVAS_WIDTH}
+        height={CANVAS_HEIGHT}
+        className="w-full max-w-[800px] rounded-lg border border-border cursor-crosshair"
+        onMouseDown={activeCurveId ? startDrawing : undefined}
+        onMouseMove={activeCurveId ? draw : undefined}
+        onMouseUp={activeCurveId ? stopDrawing : undefined}
+        onMouseLeave={activeCurveId ? stopDrawing : undefined}
+      />
+    </div>
   );
 }

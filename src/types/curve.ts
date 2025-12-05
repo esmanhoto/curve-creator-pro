@@ -8,6 +8,7 @@ export interface Curve {
   name: string;
   points: Point[];
   color: string;
+  visible: boolean;
 }
 
 export interface AxisConfig {

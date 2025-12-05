@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
 import { Curve, AxisConfig } from '@/types/curve';
-import { addMonths, format, eachDayOfInterval, startOfMonth, endOfMonth } from 'date-fns';
+import { subMonths, format, eachDayOfInterval, startOfMonth, endOfDay } from 'date-fns';
 
 function interpolateValue(points: { x: number; y: number }[], x: number): number {
   if (points.length === 0) return 0;
@@ -24,12 +24,12 @@ function interpolateValue(points: { x: number; y: number }[], x: number): number
   return left.y + t * (right.y - left.y);
 }
 
-export function exportToExcel(curves: Curve[], axisConfig: AxisConfig, startDate: Date) {
-  // Generate 6 months of dates
-  const endDate = addMonths(startDate, 6);
+export function exportToExcel(curves: Curve[], axisConfig: AxisConfig, endDate: Date) {
+  // Generate 6 months of dates ending at endDate
+  const startDate = startOfMonth(subMonths(endDate, 5));
   const dates = eachDayOfInterval({
-    start: startOfMonth(startDate),
-    end: endOfMonth(addMonths(startDate, 5))
+    start: startDate,
+    end: endOfDay(endDate)
   });
 
   const totalDays = dates.length;
