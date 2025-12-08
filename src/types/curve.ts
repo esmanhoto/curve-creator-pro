@@ -9,6 +9,7 @@ export interface Curve {
   points: Point[];
   color: string;
   visible: boolean;
+  roughness: number; // 0 = smooth, 100 = rough
 }
 
 export interface AxisConfig {

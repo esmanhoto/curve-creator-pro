@@ -4,6 +4,7 @@ import { CurveList } from './CurveList';
 import { AxisControls } from './AxisControls';
 import { ExportButton } from './ExportButton';
 import { DatePicker } from './DatePicker';
+import { RoughnessSlider } from './RoughnessSlider';
 import { Curve, AxisConfig, Point, CURVE_COLORS } from '@/types/curve';
 
 function generateId() {
@@ -12,7 +13,7 @@ function generateId() {
 
 export function CurveDataGenerator() {
   const [curves, setCurves] = useState<Curve[]>([
-    { id: generateId(), name: 'Curve 1', points: [], color: CURVE_COLORS[0], visible: true }
+    { id: generateId(), name: 'Curve 1', points: [], color: CURVE_COLORS[0], visible: true, roughness: 0 }
   ]);
   const [activeCurveId, setActiveCurveId] = useState<string | null>(curves[0].id);
   const [axisConfig, setAxisConfig] = useState<AxisConfig>({ yMin: 0, yMax: 100 });
@@ -25,6 +26,7 @@ export function CurveDataGenerator() {
       points: [],
       color: CURVE_COLORS[curves.length % CURVE_COLORS.length],
       visible: true,
+      roughness: 0,
     };
     // Set all other curves to not visible, only new curve visible
     setCurves(prev => prev.map(c => ({ ...c, visible: false })).concat(newCurve));
@@ -53,6 +55,12 @@ export function CurveDataGenerator() {
   const handleToggleVisibility = useCallback((id: string) => {
     setCurves(prev => prev.map(c => c.id === id ? { ...c, visible: !c.visible } : c));
   }, []);
+
+  const handleRoughnessChange = useCallback((id: string, roughness: number) => {
+    setCurves(prev => prev.map(c => c.id === id ? { ...c, roughness } : c));
+  }, []);
+
+  const activeCurve = curves.find(c => c.id === activeCurveId);
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -94,6 +102,13 @@ export function CurveDataGenerator() {
                 onDeleteCurve={handleDeleteCurve}
                 onRenameCurve={handleRenameCurve}
                 onClearCurve={handleClearCurve}
+              />
+            </div>
+
+            <div className="bg-card rounded-xl border border-border p-4">
+              <RoughnessSlider
+                curve={activeCurve}
+                onRoughnessChange={handleRoughnessChange}
               />
             </div>
 

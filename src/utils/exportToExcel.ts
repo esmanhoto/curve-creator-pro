@@ -24,6 +24,22 @@ function interpolateValue(points: { x: number; y: number }[], x: number): number
   return left.y + t * (right.y - left.y);
 }
 
+// Seeded random for consistent roughness across exports
+function seededRandom(seed: number): number {
+  const x = Math.sin(seed * 9999) * 10000;
+  return x - Math.floor(x);
+}
+
+function applyRoughness(value: number, roughness: number, seed: number, yRange: number): number {
+  if (roughness === 0) return value;
+  
+  // Roughness creates random variation proportional to the y-axis range
+  const maxVariation = (roughness / 100) * yRange * 0.15; // Max 15% of range at full roughness
+  const variation = (seededRandom(seed) - 0.5) * 2 * maxVariation;
+  
+  return value + variation;
+}
+
 export function exportToExcel(curves: Curve[], axisConfig: AxisConfig, endDate: Date) {
   // Generate 6 months of dates ending at endDate
   const startDate = startOfMonth(subMonths(endDate, 5));
@@ -34,6 +50,8 @@ export function exportToExcel(curves: Curve[], axisConfig: AxisConfig, endDate: 
 
   const totalDays = dates.length;
 
+  const yRange = axisConfig.yMax - axisConfig.yMin;
+
   // Create data rows
   const data = dates.map((date, index) => {
     const row: Record<string, string | number> = {
@@ -42,10 +60,15 @@ export function exportToExcel(curves: Curve[], axisConfig: AxisConfig, endDate: 
 
     const xPosition = index / (totalDays - 1);
 
-    curves.forEach(curve => {
+    curves.forEach((curve, curveIndex) => {
       if (curve.points.length > 0) {
         const normalizedY = interpolateValue(curve.points, xPosition);
-        const actualValue = axisConfig.yMin + normalizedY * (axisConfig.yMax - axisConfig.yMin);
+        let actualValue = axisConfig.yMin + normalizedY * (axisConfig.yMax - axisConfig.yMin);
+        
+        // Apply roughness with a seed based on date index and curve index
+        const seed = index * 1000 + curveIndex;
+        actualValue = applyRoughness(actualValue, curve.roughness, seed, yRange);
+        
         row[curve.name] = Math.round(actualValue * 100) / 100;
       }
     });
