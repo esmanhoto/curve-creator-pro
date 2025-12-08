@@ -10,13 +10,53 @@ const seededRandom = (seed: number): number => {
   return x - Math.floor(x);
 };
 
+// Interpolate points to simulate daily granularity (roughly 180 days for 6 months)
+const interpolateToDaily = (points: Point[], numPoints: number = 180): Point[] => {
+  if (points.length < 2) return points;
+  
+  const result: Point[] = [];
+  for (let i = 0; i < numPoints; i++) {
+    const x = i / (numPoints - 1);
+    
+    // Find surrounding points
+    let left = points[0];
+    let right = points[points.length - 1];
+    
+    for (let j = 0; j < points.length - 1; j++) {
+      if (points[j].x <= x && points[j + 1].x >= x) {
+        left = points[j];
+        right = points[j + 1];
+        break;
+      }
+    }
+    
+    // Linear interpolation
+    let y: number;
+    if (right.x === left.x) {
+      y = left.y;
+    } else {
+      const t = (x - left.x) / (right.x - left.x);
+      y = left.y + t * (right.y - left.y);
+    }
+    
+    result.push({ x, y });
+  }
+  
+  return result;
+};
+
 const applyRoughnessToPoints = (points: Point[], roughness: number, seed: number): Point[] => {
-  if (roughness === 0 || points.length === 0) return points;
+  if (points.length === 0) return points;
+  
+  // First interpolate to daily granularity
+  const dailyPoints = interpolateToDaily(points);
+  
+  if (roughness === 0) return dailyPoints;
   
   // roughness is 0-100, we want 0-10% max variation
   const maxVariation = (roughness / 100) * 0.1; // 0 to 0.1 (10%)
   
-  return points.map((point, index) => {
+  return dailyPoints.map((point, index) => {
     const randomValue = seededRandom(seed + index) * 2 - 1; // -1 to 1
     const variation = randomValue * maxVariation;
     const newY = Math.max(0, Math.min(1, point.y + variation));
@@ -191,8 +231,9 @@ export function DrawingCanvas({
       ctx.stroke();
     });
 
-    // Draw current drawing points (if active curve is visible)
-    if (activeCurve && activeCurve.visible && points.length > 0) {
+    // Draw current drawing points only while actively drawing (not saved yet)
+    // Once saved, the curve is shown from the curves array with roughness applied
+    if (isDrawing && activeCurve && activeCurve.visible && points.length > 0) {
       ctx.strokeStyle = activeCurve.color;
       ctx.lineWidth = 3;
       ctx.lineCap = 'round';
