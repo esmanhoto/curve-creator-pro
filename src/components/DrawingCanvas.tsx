@@ -40,14 +40,14 @@ export function DrawingCanvas({
 
   const activeCurve = curves.find(c => c.id === activeCurveId);
 
-  // Load existing points when switching curves
+  // Load existing points when switching curves - only if the curve has points
   useEffect(() => {
-    if (activeCurve) {
+    if (activeCurve && activeCurve.points.length > 0) {
       setPoints(activeCurve.points);
     } else {
       clearPoints();
     }
-  }, [activeCurveId, activeCurve?.points, setPoints, clearPoints]);
+  }, [activeCurveId]); // Only trigger on curve switch, not on points change
 
   // Save points when drawing stops
   useEffect(() => {
