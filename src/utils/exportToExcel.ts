@@ -33,8 +33,8 @@ function seededRandom(seed: number): number {
 function applyRoughness(value: number, roughness: number, seed: number, yRange: number): number {
   if (roughness === 0) return value;
   
-  // Roughness creates random variation proportional to the y-axis range
-  const maxVariation = (roughness / 100) * yRange * 0.15; // Max 15% of range at full roughness
+  // Roughness creates random variation: 0-100 slider maps to 0-10% of y-range
+  const maxVariation = (roughness / 100) * 0.1 * yRange; // Max 10% of range at full roughness
   const variation = (seededRandom(seed) - 0.5) * 2 * maxVariation;
   
   return value + variation;

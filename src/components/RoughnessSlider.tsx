@@ -26,7 +26,7 @@ export function RoughnessSlider({ curve, onRoughnessChange }: RoughnessSliderPro
           Roughness
         </Label>
         <span className="text-xs font-mono text-muted-foreground">
-          {curve.roughness}%
+          ±{((curve.roughness / 100) * 10).toFixed(1)}%
         </span>
       </div>
       
@@ -41,7 +41,7 @@ export function RoughnessSlider({ curve, onRoughnessChange }: RoughnessSliderPro
       
       <div className="flex justify-between text-xs text-muted-foreground">
         <span>Smooth</span>
-        <span>Rough</span>
+        <span>±10% max</span>
       </div>
     </div>
   );

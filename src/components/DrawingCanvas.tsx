@@ -1,8 +1,28 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useDrawingCanvas } from '@/hooks/useDrawingCanvas';
 import { Curve, AxisConfig, Point } from '@/types/curve';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+
+// Seeded random for consistent roughness visualization
+const seededRandom = (seed: number): number => {
+  const x = Math.sin(seed * 9999) * 10000;
+  return x - Math.floor(x);
+};
+
+const applyRoughnessToPoints = (points: Point[], roughness: number, seed: number): Point[] => {
+  if (roughness === 0 || points.length === 0) return points;
+  
+  // roughness is 0-100, we want 0-10% max variation
+  const maxVariation = (roughness / 100) * 0.1; // 0 to 0.1 (10%)
+  
+  return points.map((point, index) => {
+    const randomValue = seededRandom(seed + index) * 2 - 1; // -1 to 1
+    const variation = randomValue * maxVariation;
+    const newY = Math.max(0, Math.min(1, point.y + variation));
+    return { x: point.x, y: newY };
+  });
+};
 
 interface DrawingCanvasProps {
   curves: Curve[];
@@ -40,19 +60,35 @@ export function DrawingCanvas({
 
   const activeCurve = curves.find(c => c.id === activeCurveId);
 
+  // Track previous curve ID to detect switches
+  const prevCurveIdRef = useRef<string | null>(null);
+
   // Load existing points when switching curves - only if the curve has points
   useEffect(() => {
-    if (activeCurve && activeCurve.points.length > 0) {
-      setPoints(activeCurve.points);
-    } else {
-      clearPoints();
+    const isSwitchingCurves = prevCurveIdRef.current !== activeCurveId;
+    prevCurveIdRef.current = activeCurveId;
+    
+    if (isSwitchingCurves) {
+      if (activeCurve && activeCurve.points.length > 0) {
+        setPoints(activeCurve.points);
+      } else {
+        clearPoints();
+      }
     }
-  }, [activeCurveId]); // Only trigger on curve switch, not on points change
+  }, [activeCurveId, activeCurve, setPoints, clearPoints]);
 
-  // Save points when drawing stops
+  // Save points when drawing stops - but not during curve switches
+  const lastSavedRef = useRef<{ id: string; length: number } | null>(null);
+  
   useEffect(() => {
     if (!isDrawing && activeCurveId && points.length > 0) {
-      onUpdateCurve(activeCurveId, points);
+      // Only save if this is new drawing, not a curve switch load
+      const alreadySaved = lastSavedRef.current?.id === activeCurveId && 
+                           lastSavedRef.current?.length === points.length;
+      if (!alreadySaved) {
+        lastSavedRef.current = { id: activeCurveId, length: points.length };
+        onUpdateCurve(activeCurveId, points);
+      }
     }
   }, [isDrawing, activeCurveId, points, onUpdateCurve]);
 
@@ -129,9 +165,12 @@ export function DrawingCanvas({
       ctx.fillText(months[i], x, CANVAS_HEIGHT - PADDING.bottom + 25);
     }
 
-    // Draw only visible curves
+    // Draw only visible curves with roughness applied
     curves.forEach(curve => {
       if (!curve.visible || curve.points.length < 2) return;
+      
+      // Apply roughness to the curve points for visualization
+      const displayPoints = applyRoughnessToPoints(curve.points, curve.roughness, curve.id.charCodeAt(0));
       
       ctx.strokeStyle = curve.color;
       ctx.lineWidth = curve.id === activeCurveId ? 3 : 2;
@@ -139,7 +178,7 @@ export function DrawingCanvas({
       ctx.lineJoin = 'round';
       
       ctx.beginPath();
-      curve.points.forEach((point, index) => {
+      displayPoints.forEach((point, index) => {
         const x = PADDING.left + point.x * drawWidth;
         const y = PADDING.top + (1 - point.y) * drawHeight;
         
