@@ -10,13 +10,19 @@ const seededRandom = (seed: number): number => {
   return x - Math.floor(x);
 };
 
-// Interpolate points to simulate daily granularity (roughly 180 days for 6 months)
+// Interpolate points only within the drawn range (don't extend beyond)
 const interpolateToDaily = (points: Point[], numPoints: number = 180): Point[] => {
   if (points.length < 2) return points;
   
+  const minX = points[0].x;
+  const maxX = points[points.length - 1].x;
+  
+  // Calculate how many points should be in this range
+  const rangePoints = Math.max(2, Math.round(numPoints * (maxX - minX)));
+  
   const result: Point[] = [];
-  for (let i = 0; i < numPoints; i++) {
-    const x = i / (numPoints - 1);
+  for (let i = 0; i < rangePoints; i++) {
+    const x = minX + (i / (rangePoints - 1)) * (maxX - minX);
     
     // Find surrounding points
     let left = points[0];
