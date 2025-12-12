@@ -60,6 +60,10 @@ export function CurveDataGenerator() {
     setCurves(prev => prev.map(c => c.id === id ? { ...c, roughness } : c));
   }, []);
 
+  const handleColorChange = useCallback((id: string, color: string) => {
+    setCurves(prev => prev.map(c => c.id === id ? { ...c, color } : c));
+  }, []);
+
   const activeCurve = curves.find(c => c.id === activeCurveId);
 
   return (
@@ -102,6 +106,7 @@ export function CurveDataGenerator() {
                 onDeleteCurve={handleDeleteCurve}
                 onRenameCurve={handleRenameCurve}
                 onClearCurve={handleClearCurve}
+                onColorChange={handleColorChange}
               />
             </div>
 

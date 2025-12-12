@@ -40,7 +40,22 @@ export function useDrawingCanvas({ width, height, padding }: UseDrawingCanvasPro
     const point = getCanvasPoint(e);
     if (point) {
       setIsDrawing(true);
-      setPoints([point]);
+      // Start a new segment, don't reset existing points
+      setPoints(prev => {
+        // If clicking at a new x position after existing points, add to them
+        if (prev.length > 0) {
+          const lastPoint = prev[prev.length - 1];
+          // Only add if x is greater (continuing forward)
+          if (point.x > lastPoint.x) {
+            return [...prev, point];
+          }
+          // If clicking before or at the same x, start fresh from this point
+          // but keep any points before this x position
+          const pointsBefore = prev.filter(p => p.x < point.x);
+          return [...pointsBefore, point];
+        }
+        return [point];
+      });
     }
   }, [getCanvasPoint]);
 

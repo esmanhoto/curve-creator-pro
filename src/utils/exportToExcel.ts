@@ -2,9 +2,20 @@ import * as XLSX from 'xlsx';
 import { Curve, AxisConfig } from '@/types/curve';
 import { subMonths, format, eachDayOfInterval, startOfMonth, endOfDay } from 'date-fns';
 
-function interpolateValue(points: { x: number; y: number }[], x: number): number {
-  if (points.length === 0) return 0;
-  if (points.length === 1) return points[0].y;
+function interpolateValue(points: { x: number; y: number }[], x: number): number | null {
+  if (points.length === 0) return null;
+  if (points.length === 1) {
+    // Only return value if x is very close to the single point
+    return Math.abs(x - points[0].x) < 0.01 ? points[0].y : null;
+  }
+
+  // Check if x is within the drawn range
+  const minX = points[0].x;
+  const maxX = points[points.length - 1].x;
+  
+  if (x < minX || x > maxX) {
+    return null; // Outside drawn range = empty
+  }
 
   // Find surrounding points
   let left = points[0];
@@ -63,13 +74,17 @@ export function exportToExcel(curves: Curve[], axisConfig: AxisConfig, endDate: 
     curves.forEach((curve, curveIndex) => {
       if (curve.points.length > 0) {
         const normalizedY = interpolateValue(curve.points, xPosition);
-        let actualValue = axisConfig.yMin + normalizedY * (axisConfig.yMax - axisConfig.yMin);
         
-        // Apply roughness with a seed based on date index and curve index
-        const seed = index * 1000 + curveIndex;
-        actualValue = applyRoughness(actualValue, curve.roughness, seed, yRange);
-        
-        row[curve.name] = Math.round(actualValue * 100) / 100;
+        if (normalizedY !== null) {
+          let actualValue = axisConfig.yMin + normalizedY * (axisConfig.yMax - axisConfig.yMin);
+          
+          // Apply roughness with a seed based on date index and curve index
+          const seed = index * 1000 + curveIndex;
+          actualValue = applyRoughness(actualValue, curve.roughness, seed, yRange);
+          
+          row[curve.name] = Math.round(actualValue * 100) / 100;
+        }
+        // If normalizedY is null, don't add anything (empty cell)
       }
     });
 

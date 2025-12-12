@@ -1,8 +1,9 @@
-import { Curve, CURVE_COLORS } from '@/types/curve';
+import { Curve } from '@/types/curve';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Trash2, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ColorPicker } from './ColorPicker';
 
 interface CurveListProps {
   curves: Curve[];
@@ -12,6 +13,7 @@ interface CurveListProps {
   onDeleteCurve: (id: string) => void;
   onRenameCurve: (id: string, name: string) => void;
   onClearCurve: (id: string) => void;
+  onColorChange: (id: string, color: string) => void;
 }
 
 export function CurveList({
@@ -22,6 +24,7 @@ export function CurveList({
   onDeleteCurve,
   onRenameCurve,
   onClearCurve,
+  onColorChange,
 }: CurveListProps) {
   return (
     <div className="space-y-3">
@@ -53,10 +56,12 @@ export function CurveList({
             )}
             onClick={() => onSelectCurve(curve.id)}
           >
-            <div
-              className="w-3 h-3 rounded-full flex-shrink-0"
-              style={{ backgroundColor: curve.color }}
-            />
+            <div onClick={(e) => e.stopPropagation()}>
+              <ColorPicker
+                color={curve.color}
+                onColorChange={(color) => onColorChange(curve.id, color)}
+              />
+            </div>
             
             <Input
               value={curve.name}
