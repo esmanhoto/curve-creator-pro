@@ -7,10 +7,10 @@ import { toast } from 'sonner';
 interface ExportButtonProps {
   curves: Curve[];
   axisConfig: AxisConfig;
-  endDate: Date;
+  startDate: Date;
 }
 
-export function ExportButton({ curves, axisConfig, endDate }: ExportButtonProps) {
+export function ExportButton({ curves, axisConfig, startDate }: ExportButtonProps) {
   const handleExport = () => {
     const curvesWithData = curves.filter(c => c.points.length > 0);
     
@@ -22,7 +22,7 @@ export function ExportButton({ curves, axisConfig, endDate }: ExportButtonProps)
     }
 
     try {
-      exportToExcel(curvesWithData, axisConfig, endDate);
+      exportToExcel(curvesWithData, axisConfig, startDate);
       toast.success('Export successful', {
         description: `Exported ${curvesWithData.length} curve(s) to Excel.`,
       });
