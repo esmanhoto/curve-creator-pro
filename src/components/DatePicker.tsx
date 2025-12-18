@@ -15,7 +15,7 @@ export function DatePicker({ date, onDateChange }: DatePickerProps) {
   return (
     <div className="space-y-1.5">
       <Label className="text-xs text-muted-foreground">
-        End Date
+        Start Date
       </Label>
       <Popover>
         <PopoverTrigger asChild>

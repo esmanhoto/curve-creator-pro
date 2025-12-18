@@ -12,6 +12,12 @@ export interface Curve {
   roughness: number; // 0 = smooth, 100 = rough
 }
 
+export interface EventLine {
+  id: string;
+  date: Date;
+  label: string;
+}
+
 export interface AxisConfig {
   yMin: number;
   yMax: number;

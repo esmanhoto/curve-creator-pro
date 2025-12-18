@@ -5,10 +5,17 @@ import { AxisControls } from './AxisControls';
 import { ExportButton } from './ExportButton';
 import { DatePicker } from './DatePicker';
 import { RoughnessSlider } from './RoughnessSlider';
-import { Curve, AxisConfig, Point, CURVE_COLORS } from '@/types/curve';
+import { EventLinesManager } from './EventLinesManager';
+import { Curve, AxisConfig, Point, EventLine, CURVE_COLORS } from '@/types/curve';
 
 function generateId() {
   return Math.random().toString(36).substring(2, 9);
+}
+
+// Default to April 1st of current year
+function getDefaultStartDate() {
+  const now = new Date();
+  return new Date(now.getFullYear(), 3, 1); // April is month 3 (0-indexed)
 }
 
 export function CurveDataGenerator() {
@@ -17,7 +24,8 @@ export function CurveDataGenerator() {
   ]);
   const [activeCurveId, setActiveCurveId] = useState<string | null>(curves[0].id);
   const [axisConfig, setAxisConfig] = useState<AxisConfig>({ yMin: 0, yMax: 100 });
-  const [endDate, setEndDate] = useState<Date>(new Date());
+  const [startDate, setStartDate] = useState<Date>(getDefaultStartDate());
+  const [events, setEvents] = useState<EventLine[]>([]);
 
   const handleAddCurve = useCallback(() => {
     const newCurve: Curve = {
@@ -64,6 +72,14 @@ export function CurveDataGenerator() {
     setCurves(prev => prev.map(c => c.id === id ? { ...c, color } : c));
   }, []);
 
+  const handleAddEvent = useCallback((event: EventLine) => {
+    setEvents(prev => [...prev, event]);
+  }, []);
+
+  const handleRemoveEvent = useCallback((id: string) => {
+    setEvents(prev => prev.filter(e => e.id !== id));
+  }, []);
+
   const activeCurve = curves.find(c => c.id === activeCurveId);
 
   return (
@@ -86,6 +102,8 @@ export function CurveDataGenerator() {
                 curves={curves}
                 activeCurveId={activeCurveId}
                 axisConfig={axisConfig}
+                startDate={startDate}
+                events={events}
                 onUpdateCurve={handleUpdateCurve}
                 onToggleVisibility={handleToggleVisibility}
               />
@@ -126,15 +144,24 @@ export function CurveDataGenerator() {
 
             <div className="bg-card rounded-xl border border-border p-4">
               <DatePicker
-                date={endDate}
-                onDateChange={setEndDate}
+                date={startDate}
+                onDateChange={setStartDate}
+              />
+            </div>
+
+            <div className="bg-card rounded-xl border border-border p-4">
+              <EventLinesManager
+                events={events}
+                startDate={startDate}
+                onAddEvent={handleAddEvent}
+                onRemoveEvent={handleRemoveEvent}
               />
             </div>
 
             <ExportButton
               curves={curves}
               axisConfig={axisConfig}
-              endDate={endDate}
+              startDate={startDate}
             />
           </div>
         </div>

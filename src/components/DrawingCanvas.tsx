@@ -1,8 +1,9 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useDrawingCanvas } from '@/hooks/useDrawingCanvas';
-import { Curve, AxisConfig, Point } from '@/types/curve';
+import { Curve, AxisConfig, Point, EventLine } from '@/types/curve';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { format, addMonths, differenceInDays } from 'date-fns';
 
 // Seeded random for consistent roughness visualization
 const seededRandom = (seed: number): number => {
@@ -74,6 +75,8 @@ interface DrawingCanvasProps {
   curves: Curve[];
   activeCurveId: string | null;
   axisConfig: AxisConfig;
+  startDate: Date;
+  events: EventLine[];
   onUpdateCurve: (id: string, points: Point[]) => void;
   onToggleVisibility: (id: string) => void;
 }
@@ -85,7 +88,9 @@ const PADDING = { top: 40, right: 40, bottom: 60, left: 80 };
 export function DrawingCanvas({ 
   curves, 
   activeCurveId, 
-  axisConfig, 
+  axisConfig,
+  startDate,
+  events,
   onUpdateCurve,
   onToggleVisibility,
 }: DrawingCanvasProps) {
@@ -138,6 +143,34 @@ export function DrawingCanvas({
     }
   }, [isDrawing, activeCurveId, points, onUpdateCurve]);
 
+  // Calculate the end date (6 months from start)
+  const endDate = addMonths(startDate, 6);
+  const totalDays = differenceInDays(endDate, startDate);
+
+  // Get month labels for x-axis
+  const getMonthLabels = useCallback(() => {
+    const labels: { label: string; position: number }[] = [];
+    for (let i = 0; i < 6; i++) {
+      const monthDate = addMonths(startDate, i);
+      labels.push({
+        label: format(monthDate, 'MMM'),
+        position: (i + 0.5) / 6,
+      });
+    }
+    return labels;
+  }, [startDate]);
+
+  // Calculate event line positions
+  const getEventPositions = useCallback(() => {
+    return events.map(event => {
+      const daysDiff = differenceInDays(event.date, startDate);
+      return {
+        ...event,
+        xPosition: daysDiff / totalDays,
+      };
+    }).filter(e => e.xPosition >= 0 && e.xPosition <= 1);
+  }, [events, startDate, totalDays]);
+
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -175,6 +208,30 @@ export function DrawingCanvas({
       ctx.stroke();
     }
 
+    // Draw event lines (dashed red vertical lines)
+    const eventPositions = getEventPositions();
+    ctx.strokeStyle = 'hsl(0, 70%, 50%)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    eventPositions.forEach(event => {
+      const x = PADDING.left + event.xPosition * drawWidth;
+      ctx.beginPath();
+      ctx.moveTo(x, PADDING.top);
+      ctx.lineTo(x, CANVAS_HEIGHT - PADDING.bottom);
+      ctx.stroke();
+      
+      // Draw label
+      ctx.fillStyle = 'hsl(0, 70%, 50%)';
+      ctx.font = '10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.save();
+      ctx.translate(x, PADDING.top - 5);
+      ctx.rotate(-Math.PI / 4);
+      ctx.fillText(event.label, 0, 0);
+      ctx.restore();
+    });
+    ctx.setLineDash([]);
+
     // Draw axes
     ctx.strokeStyle = 'hsl(215, 15%, 55%)';
     ctx.lineWidth = 2;
@@ -203,13 +260,13 @@ export function DrawingCanvas({
       ctx.fillText(value.toFixed(0), PADDING.left - 10, y + 4);
     }
 
-    // X axis labels (months)
+    // X axis labels (actual month names)
     ctx.textAlign = 'center';
-    const months = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6'];
-    for (let i = 0; i < 6; i++) {
-      const x = PADDING.left + ((i + 0.5) / 6) * drawWidth;
-      ctx.fillText(months[i], x, CANVAS_HEIGHT - PADDING.bottom + 25);
-    }
+    const monthLabels = getMonthLabels();
+    monthLabels.forEach(({ label, position }) => {
+      const x = PADDING.left + position * drawWidth;
+      ctx.fillText(label, x, CANVAS_HEIGHT - PADDING.bottom + 25);
+    });
 
     // Draw only visible curves with roughness applied
     curves.forEach(curve => {
@@ -267,7 +324,7 @@ export function DrawingCanvas({
       ctx.fillText('Select or add a curve to start drawing', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
     }
 
-  }, [canvasRef, curves, points, activeCurveId, activeCurve, axisConfig]);
+  }, [canvasRef, curves, points, activeCurveId, activeCurve, axisConfig, getMonthLabels, getEventPositions, isDrawing]);
 
   useEffect(() => {
     drawCanvas();
